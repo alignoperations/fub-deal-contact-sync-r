@@ -1,4 +1,3 @@
-cat > src/automation.js << 'EOF'
 const axios = require('axios');
 
 class FollowUpBossAutomation {
