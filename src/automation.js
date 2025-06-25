@@ -29,7 +29,12 @@ class FollowUpBossAutomation {
   async handleWebhook(req, res) { 
     try { 
       const dealData = req.body; 
-      console.log('Received deal update:', dealData.id); 
+      console.log('=== FULL WEBHOOK DATA ===');
+      console.log(JSON.stringify(dealData, null, 2));
+      console.log('=== END WEBHOOK DATA ===');
+      console.log('Deal ID:', dealData.id);
+      console.log('Stage:', dealData.stage);
+      console.log('Pipeline:', dealData.pipeline); 
       res.json({ message: 'Webhook received', id: dealData.id }); 
     } catch (error) { 
       console.error('Error:', error); 
