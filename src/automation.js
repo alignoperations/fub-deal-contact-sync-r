@@ -1,19 +1,19 @@
-echo const axios = require('axios'); > src\automation.js
-echo. >> src\automation.js
-echo class FollowUpBossAutomation { >> src\automation.js
-echo   constructor(config) { >> src\automation.js
-echo     this.config = config; >> src\automation.js
-echo   } >> src\automation.js
-echo. >> src\automation.js
-echo   async handleWebhook(req, res) { >> src\automation.js
-echo     try { >> src\automation.js
-echo       console.log('Webhook received:', req.body); >> src\automation.js
-echo       res.json({ message: 'Webhook processed successfully' }); >> src\automation.js
-echo     } catch (error) { >> src\automation.js
-echo       console.error('Error:', error); >> src\automation.js
-echo       res.status(500).json({ error: error.message }); >> src\automation.js
-echo     } >> src\automation.js
-echo   } >> src\automation.js
-echo } >> src\automation.js
-echo. >> src\automation.js
-echo module.exports = { FollowUpBossAutomation }; >> src\automation.js
+const axios = require('axios');
+
+class FollowUpBossAutomation {
+  constructor(config) {
+    this.config = config;
+  }
+
+  async handleWebhook(req, res) {
+    try {
+      console.log('Webhook received:', req.body);
+      res.json({ message: 'Webhook processed successfully' });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+}
+
+module.exports = { FollowUpBossAutomation };
