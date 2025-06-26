@@ -354,8 +354,8 @@ class FollowUpBossAutomation {
                 name: taskName,
                 notes: taskBody,
                 projects: ['1209656267348045'],
-                assignee: assigneeGid,
-                workspace: '1160563790353820'  // Added required workspace parameter
+                assignee: assigneeGid
+                // Removed workspace parameter since docs say it's not needed when projects is specified
             }
         };
         
