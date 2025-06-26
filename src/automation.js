@@ -353,8 +353,8 @@ class FollowUpBossAutomation {
             data: {
                 name: taskName,
                 notes: taskBody,
-                projects: [parseInt('1209646560314018')],  // Try numeric GID
-                assignee: parseInt(assigneeGid)  // Try numeric GID
+                projects: ['1209646560314018'],  // Updated with correct project ID
+                assignee: assigneeGid
             }
         };
         
