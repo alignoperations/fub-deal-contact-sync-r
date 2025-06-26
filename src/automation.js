@@ -16,7 +16,7 @@ class FollowUpBossAutomation {
         };
         
         this.stageLookupTable = {
-        'Agency': 'Agency',
+        'A (< 30) + Agency': 'A (< 30)',
         'Offers Submitted': 'Submitting offers',
         'Submitting Applications': 'Application Submitted',
         'Active Off-Market': 'Active Off Market Listing',
