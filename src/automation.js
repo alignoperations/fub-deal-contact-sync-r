@@ -55,8 +55,8 @@ async getStageIdByName(stageName) {
         console.log('Extracted stages array length:', stages.length);
         console.log('Available stage names:', stages.map(s => s.name || s.title || 'unnamed'));
         
-        // Find stage by name
-        const stage = stages.find(s => s.name === stageName);
+        // Find stage by name (case-insensitive)
+        const stage = stages.find(s => s.name.toLowerCase() === stageName.toLowerCase());
         
         if (stage) {
             console.log('Found stage ID:', stage.id, 'for name:', stageName);
