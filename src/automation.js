@@ -474,6 +474,8 @@ Details: ${error.details || 'No additional details available'}`;
             console.error('Failed to send stage update failure notification:', notificationError.message);
         }
     }
+
+    async getAsanaUserByEmail(email) {
         try {
             const response = await axios.get('https://app.asana.com/api/1.0/users', {
                 headers: {
