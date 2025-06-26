@@ -332,7 +332,8 @@ async createAsanaTask(dealData, agentInfo) {
     const taskName = 'No Contact Attached - ' + (dealData.name || 'Deal');
     const taskBody = 'Deal Title: ' + (dealData.name || 'Unknown') + '\nAssigned Agent: ' + (agentInfo.name || 'Unknown') + '\nPipeline: ' + (dealData.pipelineName || 'Unknown') + '\nStage: ' + (dealData.stageName || 'Unknown') + '\n\nMake sure this is updated and fixed within 24 hours.';
 
-    const assigneeGid = await this.getAsanaUserByEmail('cadesanya@alignteam.com');
+    // Fixed assignee GID - no longer looking up by email
+    const assigneeGid = '1209646560314034';
     
     console.log('=== ASANA DEBUG INFO ===');
     console.log('Task Name:', taskName);
@@ -345,8 +346,8 @@ async createAsanaTask(dealData, agentInfo) {
         data: {
             name: taskName,
             notes: taskBody,
-            projects: ['1209656267348045'],
-            assignee: assigneeGid
+            projects: [{ gid: '1209656267348045' }],  // Fixed: projects needs objects with gid property
+            assignee: { gid: assigneeGid }  // Fixed: assignee also needs object with gid property
         }
     };
     
@@ -369,23 +370,6 @@ async createAsanaTask(dealData, agentInfo) {
         console.error('Error Data:', JSON.stringify(error.response?.data, null, 2));
         console.error('Headers:', JSON.stringify(error.response?.headers, null, 2));
         throw error;
-    }
-}
-async getAsanaUserByEmail(email) {
-    try {
-        const response = await axios.get('https://app.asana.com/api/1.0/users', {
-            headers: {
-                'Authorization': 'Bearer ' + this.config.asana.accessToken
-            },
-            params: { opt_fields: 'gid,email' },
-            timeout: 10000
-        });
-
-        const user = response.data.data.find(u => u.email === email);
-        return user ? user.gid : null;
-    } catch (error) {
-        console.error('Error finding Asana user:', error.message);
-        return null;
     }
 }
 }
