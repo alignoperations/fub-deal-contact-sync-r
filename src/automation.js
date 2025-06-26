@@ -1,15 +1,32 @@
-this.stageLookupTable = {
-        'Agency': 'Agency',
-        'Offers Submitted': 'Submitting offers',
-        'Submitting Applications': 'Application Submitted',
-        'Active Off-Market': 'Active Off Market Listing',
-        'Send Referral Agreement': 'Referral Out Open',
-        'Referral Under Contract': 'Referral Out Under Contract',
-        'Referral Closed': 'Referral Out Closed'
-    };
-}
+const axios = require('axios');
 
-async handleWebhook(req, res) {
+class FollowUpBossAutomation {
+    constructor(config) {
+        this.config = {
+            followUpBoss: {
+                apiKey: config.followUpBossApiKey,
+                baseUrl: 'https://api.followupboss.com/v1'
+            },
+            slack: {
+                botToken: config.slackBotToken
+            },
+            asana: {
+                accessToken: config.asanaAccessToken
+            }
+        };
+        
+        this.stageLookupTable = {
+            'Agency': 'Agency',
+            'Offers Submitted': 'Submitting offers',
+            'Submitting Applications': 'Application Submitted',
+            'Active Off-Market': 'Active Off Market Listing',
+            'Send Referral Agreement': 'Referral Out Open',
+            'Referral Under Contract': 'Referral Out Under Contract',
+            'Referral Closed': 'Referral Out Closed'
+        };
+    }
+
+    async handleWebhook(req, res) {
     try {
         const webhookData = req.body;
         console.log('=== WEBHOOK RECEIVED ===');
@@ -284,3 +301,5 @@ async getAsanaUserByEmail(email) {
         return null;
     }
 }
+
+module.exports = { FollowUpBossAutomation };
