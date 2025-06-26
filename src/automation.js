@@ -349,12 +349,18 @@ class FollowUpBossAutomation {
         console.log('Project ID:', '1209646560314018');
         console.log('=== END ASANA DEBUG ===');
         
+        // Calculate tomorrow's date in YYYY-MM-DD format
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowFormatted = tomorrow.toISOString().split('T')[0];
+
         const payload = {
             data: {
                 name: taskName,
                 notes: taskBody,
                 projects: ['1209646560314018'],  // Updated with correct project ID
-                assignee: assigneeGid
+                assignee: assigneeGid,
+                due_on: tomorrowFormatted  // Set due date to tomorrow
             }
         };
         
