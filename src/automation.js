@@ -334,24 +334,43 @@ async createAsanaTask(dealData, agentInfo) {
 
     const assigneeGid = await this.getAsanaUserByEmail('cadesanya@alignteam.com');
     
-    const response = await axios.post('https://app.asana.com/api/1.0/tasks', {
+    console.log('=== ASANA DEBUG INFO ===');
+    console.log('Task Name:', taskName);
+    console.log('Task Body:', taskBody);
+    console.log('Assignee GID:', assigneeGid);
+    console.log('Project ID:', '1209656267348045');
+    console.log('=== END ASANA DEBUG ===');
+    
+    const payload = {
         data: {
             name: taskName,
             notes: taskBody,
             projects: ['1209656267348045'],
             assignee: assigneeGid
         }
-    }, {
-        headers: {
-            'Authorization': 'Bearer ' + this.config.asana.accessToken,
-            'Content-Type': 'application/json'
-        },
-        timeout: 10000
-    });
+    };
+    
+    console.log('Asana API payload:', JSON.stringify(payload, null, 2));
+    
+    try {
+        const response = await axios.post('https://app.asana.com/api/1.0/tasks', payload, {
+            headers: {
+                'Authorization': 'Bearer ' + this.config.asana.accessToken,
+                'Content-Type': 'application/json'
+            },
+            timeout: 10000
+        });
 
-    console.log('Asana task created:', response.data.data.gid);
+        console.log('Asana task created:', response.data.data.gid);
+    } catch (error) {
+        console.error('Asana API Error Details:');
+        console.error('Status:', error.response?.status);
+        console.error('Status Text:', error.response?.statusText);
+        console.error('Error Data:', JSON.stringify(error.response?.data, null, 2));
+        console.error('Headers:', JSON.stringify(error.response?.headers, null, 2));
+        throw error;
+    }
 }
-
 async getAsanaUserByEmail(email) {
     try {
         const response = await axios.get('https://app.asana.com/api/1.0/users', {
