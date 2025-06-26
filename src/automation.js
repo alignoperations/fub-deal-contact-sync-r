@@ -25,7 +25,6 @@ class FollowUpBossAutomation {
             'Referral Closed': 'Referral Out Closed'
         };
 
-        // Add a simple in-memory cache to prevent duplicates
         this.processedDeals = new Set();
     }
 
@@ -44,21 +43,13 @@ class FollowUpBossAutomation {
                 timeout: 10000
             });
             
-            console.log('Full stages API response:', JSON.stringify(response.data, null, 2));
-            
-            // The API returns stages nested in a 'stages' property
             const stages = response.data.stages;
             
             if (!Array.isArray(stages)) {
                 console.error('Expected stages to be an array, got:', typeof stages);
-                console.error('Response keys:', Object.keys(response.data));
                 return null;
             }
             
-            console.log('Extracted stages array length:', stages.length);
-            console.log('Available stage names:', stages.map(s => s.name || s.title || 'unnamed'));
-            
-            // Find stage by name (case-insensitive)
             const stage = stages.find(s => s.name.toLowerCase() === stageName.toLowerCase());
             
             if (stage) {
@@ -66,7 +57,6 @@ class FollowUpBossAutomation {
                 return stage.id;
             } else {
                 console.log('Stage not found:', stageName);
-                console.log('Available stages:', stages.map(s => `"${s.name}"`).join(', '));
                 return null;
             }
         } catch (error) {
@@ -136,7 +126,6 @@ class FollowUpBossAutomation {
         console.log(JSON.stringify(response.data, null, 2));
         console.log('=== END DEAL DATA ===');
         
-        // The stage might be in a different field, let's check
         const dealData = response.data;
         console.log('Deal stage field:', dealData.stage);
         console.log('Deal stageId field:', dealData.stageId);
@@ -181,7 +170,6 @@ class FollowUpBossAutomation {
     async processPathA(dealData, firstPeopleID) {
         console.log('Processing Path A - Update stage');
         
-        // Store deal data for potential error notifications
         this.currentDealData = dealData;
         
         if (!this.passesPathAFilters(dealData)) {
@@ -223,7 +211,6 @@ class FollowUpBossAutomation {
         }
 
         try {
-            // Get the stage ID from the stage name
             const stageId = await this.getStageIdByName(stageName);
             
             if (!stageId) {
@@ -255,7 +242,6 @@ class FollowUpBossAutomation {
         } catch (error) {
             console.error('Failed to update Follow Up Boss stage:', error.message);
             
-            // Enhance error message with more details
             let detailedError = error;
             if (error.response) {
                 detailedError.details = `HTTP ${error.response.status}: ${error.response.statusText}. Response: ${JSON.stringify(error.response.data)}`;
@@ -267,10 +253,8 @@ class FollowUpBossAutomation {
                 detailedError.details = `Network/API error: ${error.message}`;
             }
             
-            // Send failure notification to Julianna
             await this.sendStageUpdateFailureNotification(peopleId, stageName, detailedError);
             
-            // Don't throw the error to prevent breaking the entire webhook
             return null;
         }
     }
@@ -278,21 +262,17 @@ class FollowUpBossAutomation {
     async processPathB(dealData, firstPeopleID) {
         console.log('Processing Path B - Notifications');
         
-        // Create a unique identifier for this deal + current minute to prevent rapid duplicates
         const now = new Date();
         const currentMinute = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate() + '-' + now.getHours() + '-' + now.getMinutes();
         const dealKey = `${dealData.id}-${currentMinute}`;
         
-        // Check if we've already processed this deal in the current minute
         if (this.processedDeals.has(dealKey)) {
             console.log('Duplicate detected for deal', dealData.id, 'in current minute - skipping');
             return;
         }
         
-        // Mark this deal as processed
         this.processedDeals.add(dealKey);
         
-        // Clean up old entries (keep only last 100 to prevent memory issues)
         if (this.processedDeals.size > 100) {
             const entries = Array.from(this.processedDeals);
             entries.slice(0, 50).forEach(entry => this.processedDeals.delete(entry));
@@ -359,11 +339,6 @@ class FollowUpBossAutomation {
     async sendSlackReminder(slackUser, dealData, agentInfo) {
         const message = this.buildSlackMessage(dealData, agentInfo);
         
-        console.log('=== SLACK DEBUG INFO ===');
-        console.log('Slack User ID:', slackUser.id);
-        console.log('Message:', message);
-        console.log('=== END SLACK DEBUG ===');
-        
         const response = await axios.post('https://slack.com/api/chat.postMessage', {
             channel: slackUser.id,
             text: message
@@ -393,17 +368,8 @@ class FollowUpBossAutomation {
         const taskName = 'No Contact Attached - ' + (dealData.name || 'Deal');
         const taskBody = 'Deal Title: ' + (dealData.name || 'Unknown') + '\nAssigned Agent: ' + (agentInfo.name || 'Unknown') + '\nPipeline: ' + (dealData.pipelineName || 'Unknown') + '\nStage: ' + (dealData.stageName || 'Unknown') + '\n\nMake sure this is updated and fixed within 24 hours.';
 
-        // Fixed assignee GID - no longer looking up by email
         const assigneeGid = '1209646560314034';
         
-        console.log('=== ASANA DEBUG INFO ===');
-        console.log('Task Name:', taskName);
-        console.log('Task Body:', taskBody);
-        console.log('Assignee GID:', assigneeGid);
-        console.log('Project ID:', '1209646560314018');
-        console.log('=== END ASANA DEBUG ===');
-        
-        // Calculate tomorrow's date in YYYY-MM-DD format
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowFormatted = tomorrow.toISOString().split('T')[0];
@@ -412,13 +378,11 @@ class FollowUpBossAutomation {
             data: {
                 name: taskName,
                 notes: taskBody,
-                projects: ['1209646560314018'],  // Updated with correct project ID
+                projects: ['1209646560314018'],
                 assignee: assigneeGid,
-                due_on: tomorrowFormatted  // Set due date to tomorrow
+                due_on: tomorrowFormatted
             }
         };
-        
-        console.log('Asana API payload:', JSON.stringify(payload, null, 2));
         
         try {
             const response = await axios.post('https://app.asana.com/api/1.0/tasks', payload, {
@@ -431,21 +395,15 @@ class FollowUpBossAutomation {
 
             console.log('Asana task created:', response.data.data.gid);
         } catch (error) {
-            console.error('Asana API Error Details:');
-            console.error('Status:', error.response?.status);
-            console.error('Status Text:', error.response?.statusText);
-            console.error('Error Data:', JSON.stringify(error.response?.data, null, 2));
-            console.error('Headers:', JSON.stringify(error.response?.headers, null, 2));
+            console.error('Asana API Error:', error.response?.status, error.response?.data);
             throw error;
         }
     }
 
     async sendStageUpdateFailureNotification(peopleId, stageName, error) {
         try {
-            // Send to specific channel instead of DM
             const channelId = 'C093UR5GGF2';
             
-            // Get deal data from the current context (we'll need to store this)
             const dealName = this.currentDealData?.name || 'Unknown Deal';
             const pipelineName = this.currentDealData?.pipelineName || 'Unknown Pipeline';
             
@@ -472,24 +430,6 @@ Details: ${error.details || 'No additional details available'}`;
             console.log('Stage update failure notification sent to channel C093UR5GGF2');
         } catch (notificationError) {
             console.error('Failed to send stage update failure notification:', notificationError.message);
-        }
-    }
-
-    async getAsanaUserByEmail(email) {
-        try {
-            const response = await axios.get('https://app.asana.com/api/1.0/users', {
-                headers: {
-                    'Authorization': 'Bearer ' + this.config.asana.accessToken
-                },
-                params: { opt_fields: 'gid,email' },
-                timeout: 10000
-            });
-
-            const user = response.data.data.find(u => u.email === email);
-            return user ? user.gid : null;
-        } catch (error) {
-            console.error('Error finding Asana user:', error.message);
-            return null;
         }
     }
 }
