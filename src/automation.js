@@ -35,6 +35,9 @@ async getStageIdByName(stageName) {
                 'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
                 'Content-Type': 'application/json'
             },
+            params: {
+                limit: 100
+            },
             timeout: 10000
         });
         
