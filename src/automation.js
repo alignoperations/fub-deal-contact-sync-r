@@ -304,30 +304,16 @@ async findSlackAgent(email) {
 async sendSlackReminder(slackUser, dealData, agentInfo) {
     const message = this.buildSlackMessage(dealData, agentInfo);
     
-    console.log('=== SLACK DEBUG INFO ===');
-    console.log('Slack User ID:', slackUser.id);
-    console.log('Message:', message);
-    console.log('Agent Info:', JSON.stringify(agentInfo, null, 2));
-    console.log('Deal Data name:', dealData.name);
-    console.log('=== END SLACK DEBUG ===');
-    
-    const payload = {
+    const response = await axios.post('https://slack.com/api/chat.postMessage', {
         channel: slackUser.id,
-        text: message,
-        as_user: false
-    };
-    
-    console.log('Slack API payload:', JSON.stringify(payload, null, 2));
-    
-    const response = await axios.post('https://slack.com/api/chat.postMessage', payload, {
+        text: message
+    }, {
         headers: {
             'Authorization': 'Bearer ' + this.config.slack.botToken,
             'Content-Type': 'application/json'
         },
         timeout: 10000
     });
-
-    console.log('Slack API response:', JSON.stringify(response.data, null, 2));
 
     if (!response.data.ok) {
         throw new Error('Slack API error: ' + response.data.error);
