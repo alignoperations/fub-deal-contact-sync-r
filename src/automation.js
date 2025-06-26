@@ -41,10 +41,21 @@ async getStageIdByName(stageName) {
             timeout: 10000
         });
         
-        console.log('Available stages:', JSON.stringify(response.data, null, 2));
+        console.log('Full stages API response:', JSON.stringify(response.data, null, 2));
+        
+        // The API returns stages nested in a 'stages' property
+        const stages = response.data.stages;
+        
+        if (!Array.isArray(stages)) {
+            console.error('Expected stages to be an array, got:', typeof stages);
+            console.error('Response keys:', Object.keys(response.data));
+            return null;
+        }
+        
+        console.log('Extracted stages array length:', stages.length);
+        console.log('Available stage names:', stages.map(s => s.name || s.title || 'unnamed'));
         
         // Find stage by name
-        const stages = response.data;
         const stage = stages.find(s => s.name === stageName);
         
         if (stage) {
@@ -52,6 +63,7 @@ async getStageIdByName(stageName) {
             return stage.id;
         } else {
             console.log('Stage not found:', stageName);
+            console.log('Available stages:', stages.map(s => `"${s.name}"`).join(', '));
             return null;
         }
     } catch (error) {
@@ -59,7 +71,6 @@ async getStageIdByName(stageName) {
         return null;
     }
 }
-
 async handleWebhook(req, res) {
     try {
         const webhookData = req.body;
