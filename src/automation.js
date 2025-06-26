@@ -300,6 +300,7 @@ async getAsanaUserByEmail(email) {
         console.error('Error finding Asana user:', error.message);
         return null;
     }
+  }
 }
 
 module.exports = { FollowUpBossAutomation };
