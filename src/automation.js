@@ -181,6 +181,9 @@ class FollowUpBossAutomation {
     async processPathA(dealData, firstPeopleID) {
         console.log('Processing Path A - Update stage');
         
+        // Store deal data for potential error notifications
+        this.currentDealData = dealData;
+        
         if (!this.passesPathAFilters(dealData)) {
             console.log('Path A: Failed filters');
             return;
@@ -213,35 +216,63 @@ class FollowUpBossAutomation {
     async updateFollowUpBossStage(peopleId, stageName) {
         if (!stageName || stageName === 'undefined') {
             console.log('Skipping update - invalid stage name:', stageName);
+            const error = new Error('Invalid stage name provided');
+            error.details = `Stage name was: ${stageName}`;
+            await this.sendStageUpdateFailureNotification(peopleId, stageName, error);
             return;
         }
 
-        // Get the stage ID from the stage name
-        const stageId = await this.getStageIdByName(stageName);
-        
-        if (!stageId) {
-            console.log('Could not find stage ID for:', stageName);
-            return;
-        }
+        try {
+            // Get the stage ID from the stage name
+            const stageId = await this.getStageIdByName(stageName);
+            
+            if (!stageId) {
+                console.log('Could not find stage ID for:', stageName);
+                const error = new Error('Unable to find stage in FollowUpBoss');
+                error.details = `Stage "${stageName}" not found in available stages`;
+                await this.sendStageUpdateFailureNotification(peopleId, stageName, error);
+                return;
+            }
 
-        const url = this.config.followUpBoss.baseUrl + '/people/' + peopleId;
-        
-        console.log('Updating person', peopleId, 'to stage ID:', stageId, 'name:', stageName);
-        
-        const response = await axios.put(url, {
-            stage: stageId
-        }, {
-            headers: {
-                'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
-                'Content-Type': 'application/json',
-                'X-System': 'ManifestNetwork',
-                'X-System-Key': '2041dc7b20d2909C097bccd3e65f44e'
-            },
-            timeout: 10000
-        });
-        
-        console.log('Follow Up Boss update successful:', response.status);
-        return response.data;
+            const url = this.config.followUpBoss.baseUrl + '/people/' + peopleId;
+            
+            console.log('Updating person', peopleId, 'to stage ID:', stageId, 'name:', stageName);
+            
+            const response = await axios.put(url, {
+                stage: stageId
+            }, {
+                headers: {
+                    'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
+                    'Content-Type': 'application/json',
+                    'X-System': 'ManifestNetwork',
+                    'X-System-Key': '2041dc7b20d2909C097bccd3e65f44e'
+                },
+                timeout: 10000
+            });
+            
+            console.log('Follow Up Boss update successful:', response.status);
+            return response.data;
+        } catch (error) {
+            console.error('Failed to update Follow Up Boss stage:', error.message);
+            
+            // Enhance error message with more details
+            let detailedError = error;
+            if (error.response) {
+                detailedError.details = `HTTP ${error.response.status}: ${error.response.statusText}. Response: ${JSON.stringify(error.response.data)}`;
+            } else if (error.code === 'ENOTFOUND') {
+                detailedError.details = 'Network error - unable to reach FollowUpBoss API';
+            } else if (error.code === 'ECONNABORTED') {
+                detailedError.details = 'Request timeout - FollowUpBoss API took too long to respond';
+            } else {
+                detailedError.details = `Network/API error: ${error.message}`;
+            }
+            
+            // Send failure notification to Julianna
+            await this.sendStageUpdateFailureNotification(peopleId, stageName, detailedError);
+            
+            // Don't throw the error to prevent breaking the entire webhook
+            return null;
+        }
     }
 
     async processPathB(dealData, firstPeopleID) {
@@ -409,7 +440,40 @@ class FollowUpBossAutomation {
         }
     }
 
-    async getAsanaUserByEmail(email) {
+    async sendStageUpdateFailureNotification(peopleId, stageName, error) {
+        try {
+            // Send to specific channel instead of DM
+            const channelId = 'C093UR5GGF2';
+            
+            // Get deal data from the current context (we'll need to store this)
+            const dealName = this.currentDealData?.name || 'Unknown Deal';
+            const pipelineName = this.currentDealData?.pipelineName || 'Unknown Pipeline';
+            
+            const failureMessage = `AIDA failed to update the deal stage for the following...
+Deal Name: ${dealName}
+Pipeline: ${pipelineName}
+New Stage: ${stageName}
+FUB Contact Link: https://align.followupboss.com/2/people/view/${peopleId}
+
+Error: ${error.message}
+Details: ${error.details || 'No additional details available'}`;
+
+            await axios.post('https://slack.com/api/chat.postMessage', {
+                channel: channelId,
+                text: failureMessage
+            }, {
+                headers: {
+                    'Authorization': 'Bearer ' + this.config.slack.botToken,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000
+            });
+
+            console.log('Stage update failure notification sent to channel C093UR5GGF2');
+        } catch (notificationError) {
+            console.error('Failed to send stage update failure notification:', notificationError.message);
+        }
+    }
         try {
             const response = await axios.get('https://app.asana.com/api/1.0/users', {
                 headers: {
