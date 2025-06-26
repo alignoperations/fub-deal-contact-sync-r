@@ -24,6 +24,9 @@ class FollowUpBossAutomation {
             'Referral Under Contract': 'Referral Out Under Contract',
             'Referral Closed': 'Referral Out Closed'
         };
+
+        // Add a simple in-memory cache to prevent duplicates
+        this.processedDeals = new Set();
     }
 
     async getStageIdByName(stageName) {
@@ -243,6 +246,26 @@ class FollowUpBossAutomation {
 
     async processPathB(dealData, firstPeopleID) {
         console.log('Processing Path B - Notifications');
+        
+        // Create a unique identifier for this deal + current minute to prevent rapid duplicates
+        const now = new Date();
+        const currentMinute = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate() + '-' + now.getHours() + '-' + now.getMinutes();
+        const dealKey = `${dealData.id}-${currentMinute}`;
+        
+        // Check if we've already processed this deal in the current minute
+        if (this.processedDeals.has(dealKey)) {
+            console.log('Duplicate detected for deal', dealData.id, 'in current minute - skipping');
+            return;
+        }
+        
+        // Mark this deal as processed
+        this.processedDeals.add(dealKey);
+        
+        // Clean up old entries (keep only last 100 to prevent memory issues)
+        if (this.processedDeals.size > 100) {
+            const entries = Array.from(this.processedDeals);
+            entries.slice(0, 50).forEach(entry => this.processedDeals.delete(entry));
+        }
         
         const userId = this.extractFirstUserID(dealData);
         const agentInfo = await this.getAssignedAgentInfo(userId);
