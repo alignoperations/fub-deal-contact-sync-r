@@ -69,13 +69,13 @@ async handleWebhook(req, res) {
             console.log('Processing deal ID:', dealId);
             
             const dealData = await this.fetchDealDetails(dealId);
-            console.log('Deal stage:', dealData.stage);
-            console.log('Deal pipeline:', dealData.pipeline);
+            console.log('Deal stage:', dealData.stageName);
+            console.log('Deal pipeline:', dealData.pipelineName);
 
             const firstPeopleID = this.extractFirstPeopleID(dealData);
             console.log('People ID:', firstPeopleID);
             
-            if (this.shouldFilterOut(dealData.stage)) {
+            if (this.shouldFilterOut(dealData.stageName)) {
                 console.log('Filtered out - stage contains 202');
                 return res.status(200).json({ message: 'Filtered out' });
             }
@@ -145,7 +145,7 @@ determineProcessingPath(dealData, firstPeopleID) {
     const hasOutputItem = firstPeopleID !== null;
     
     if (hasOutputItem) {
-        const pipeline = dealData.pipeline || '';
+        const pipeline = dealData.pipelineName || '';
         const excludedPipelines = ['Investments Acquisition', 'Agent Recruiting', 'Commercial'];
         
         const shouldExclude = excludedPipelines.some(excluded => pipeline.includes(excluded));
@@ -168,16 +168,16 @@ async processPathA(dealData, firstPeopleID) {
         return;
     }
 
-    const transformedStage = this.transformStage(dealData.stage);
-    console.log('Stage transformation:', dealData.stage, '->', transformedStage);
+    const transformedStage = this.transformStage(dealData.stageName);
+    console.log('Stage transformation:', dealData.stageName, '->', transformedStage);
     
     await this.updateFollowUpBossStage(firstPeopleID, transformedStage);
     console.log('Path A: Updated person', firstPeopleID, 'to stage:', transformedStage);
 }
 
 passesPathAFilters(dealData) {
-    const stage = dealData.stage || '';
-    const pipeline = dealData.pipeline || '';
+    const stage = dealData.stageName || '';
+    const pipeline = dealData.pipelineName || '';
     
     const condition1 = stage !== '2022 Closed' && pipeline !== 'Agent Recruiting';
     const condition2 = pipeline === 'Investments Acquisition' && stage === 'Start Transaction';
@@ -318,7 +318,7 @@ buildSlackMessage(dealData, agentInfo) {
 
 async createAsanaTask(dealData, agentInfo) {
     const taskName = 'No Contact Attached - ' + (dealData.name || 'Deal');
-    const taskBody = 'Deal Title: ' + (dealData.name || 'Unknown') + '\nAssigned Agent: ' + (agentInfo.name || 'Unknown') + '\nPipeline: ' + (dealData.pipeline || 'Unknown') + '\nStage: ' + (dealData.stage || 'Unknown') + '\n\nMake sure this is updated and fixed within 24 hours.';
+    const taskBody = 'Deal Title: ' + (dealData.name || 'Unknown') + '\nAssigned Agent: ' + (agentInfo.name || 'Unknown') + '\nPipeline: ' + (dealData.pipelineName || 'Unknown') + '\nStage: ' + (dealData.stageName || 'Unknown') + '\n\nMake sure this is updated and fixed within 24 hours.';
 
     const assigneeGid = await this.getAsanaUserByEmail('cadesanya@alignteam.com');
     
