@@ -346,14 +346,14 @@ class FollowUpBossAutomation {
         console.log('Task Name:', taskName);
         console.log('Task Body:', taskBody);
         console.log('Assignee GID:', assigneeGid);
-        console.log('Project ID:', '1209656267348045');
+        console.log('Project ID:', '1209646560314018');
         console.log('=== END ASANA DEBUG ===');
         
         const payload = {
             data: {
                 name: taskName,
                 notes: taskBody,
-                projects: [parseInt('1209656267348045')],  // Try numeric GID
+                projects: [parseInt('1209646560314018')],  // Try numeric GID
                 assignee: parseInt(assigneeGid)  // Try numeric GID
             }
         };
