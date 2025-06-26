@@ -16,17 +16,48 @@ class FollowUpBossAutomation {
         };
         
         this.stageLookupTable = {
-            'Agency': 'Agency',
-            'Offers Submitted': 'Submitting offers',
-            'Submitting Applications': 'Application Submitted',
-            'Active Off-Market': 'Active Off Market Listing',
-            'Send Referral Agreement': 'Referral Out Open',
-            'Referral Under Contract': 'Referral Out Under Contract',
-            'Referral Closed': 'Referral Out Closed'
-        };
-    }
+        'Agency': 'Agency',
+        'Offers Submitted': 'Submitting offers',
+        'Submitting Applications': 'Application Submitted',
+        'Active Off-Market': 'Active Off Market Listing',
+        'Send Referral Agreement': 'Referral Out Open',
+        'Referral Under Contract': 'Referral Out Under Contract',
+        'Referral Closed': 'Referral Out Closed'
+    };
+}
 
-    async handleWebhook(req, res) {
+async getStageIdByName(stageName) {
+    try {
+        const url = this.config.followUpBoss.baseUrl + '/stages';
+        
+        const response = await axios.get(url, {
+            headers: {
+                'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
+                'Content-Type': 'application/json'
+            },
+            timeout: 10000
+        });
+        
+        console.log('Available stages:', JSON.stringify(response.data, null, 2));
+        
+        // Find stage by name
+        const stages = response.data;
+        const stage = stages.find(s => s.name === stageName);
+        
+        if (stage) {
+            console.log('Found stage ID:', stage.id, 'for name:', stageName);
+            return stage.id;
+        } else {
+            console.log('Stage not found:', stageName);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error fetching stages:', error.message);
+        return null;
+    }
+}
+
+async handleWebhook(req, res) {
     try {
         const webhookData = req.body;
         console.log('=== WEBHOOK RECEIVED ===');
@@ -83,7 +114,17 @@ async fetchDealDetails(dealId) {
         timeout: 10000
     });
     
-    return response.data;
+    console.log('=== FULL DEAL DATA ===');
+    console.log(JSON.stringify(response.data, null, 2));
+    console.log('=== END DEAL DATA ===');
+    
+    // The stage might be in a different field, let's check
+    const dealData = response.data;
+    console.log('Deal stage field:', dealData.stage);
+    console.log('Deal stageId field:', dealData.stageId);
+    console.log('Deal status field:', dealData.status);
+    
+    return dealData;
 }
 
 extractFirstPeopleID(dealData) {
@@ -151,11 +192,26 @@ transformStage(originalStage) {
     return this.stageLookupTable[originalStage] || originalStage;
 }
 
-async updateFollowUpBossStage(peopleId, newStage) {
+async updateFollowUpBossStage(peopleId, stageName) {
+    if (!stageName || stageName === 'undefined') {
+        console.log('Skipping update - invalid stage name:', stageName);
+        return;
+    }
+
+    // Get the stage ID from the stage name
+    const stageId = await this.getStageIdByName(stageName);
+    
+    if (!stageId) {
+        console.log('Could not find stage ID for:', stageName);
+        return;
+    }
+
     const url = this.config.followUpBoss.baseUrl + '/people/' + peopleId;
     
+    console.log('Updating person', peopleId, 'to stage ID:', stageId, 'name:', stageName);
+    
     const response = await axios.put(url, {
-        stage: newStage
+        stage: stageId
     }, {
         headers: {
             'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
@@ -300,7 +356,7 @@ async getAsanaUserByEmail(email) {
         console.error('Error finding Asana user:', error.message);
         return null;
     }
-  }
+}
 }
 
 module.exports = { FollowUpBossAutomation };
