@@ -355,7 +355,7 @@ class FollowUpBossAutomation {
         const agentName = agentInfo.firstName || 'Agent';
         const dealName = dealData.name || 'deal';
         
-        return 'Hi <@' + agentName + '>,\n\nThanks so much for updating the deal card! We noticed that you haven\'t yet linked a contact to the ' + dealName + ' deal card. Please do so ASAP, as that is a mandatory step in maintaining our metrics, and ensures we can provide the best possible service to you and your clients as the deal progresses. In the future, if you create your deals and appointments from the contact\'s page in FUB, they\'ll get linked automatically!';
+        return 'Hi ' + agentName + ',\n\nThanks so much for updating the deal card! We noticed that you haven\'t yet linked a contact to the ' + dealName + ' deal card. Please do so ASAP, as that is a mandatory step in maintaining our metrics, and ensures we can provide the best possible service to you and your clients as the deal progresses. In the future, if you create your deals and appointments from the contact\'s page in FUB, they\'ll get linked automatically!';
     }
 
     async createAsanaTask(dealData, agentInfo) {
