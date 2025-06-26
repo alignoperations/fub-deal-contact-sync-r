@@ -353,9 +353,8 @@ class FollowUpBossAutomation {
             data: {
                 name: taskName,
                 notes: taskBody,
-                projects: ['1209656267348045'],
-                assignee: assigneeGid
-                // Removed workspace parameter since docs say it's not needed when projects is specified
+                projects: [parseInt('1209656267348045')],  // Try numeric GID
+                assignee: parseInt(assigneeGid)  // Try numeric GID
             }
         };
         
