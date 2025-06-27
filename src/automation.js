@@ -402,6 +402,12 @@ class FollowUpBossAutomation {
 
     async sendStageUpdateFailureNotification(peopleId, stageName, error) {
         try {
+            // Skip notification for Zillow Sync stage errors that we don't care about
+            if (error.details && error.details.includes('Provided stage is not a valid Zillow Sync Stage')) {
+                console.log('Skipping Zillow Sync stage error notification - this is expected');
+                return;
+            }
+            
             const channelId = 'C093UR5GGF2';
             
             const dealName = this.currentDealData?.name || 'Unknown Deal';
