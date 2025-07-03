@@ -22,7 +22,9 @@ class FollowUpBossAutomation {
             'Active Off-Market': 'Active Off Market Listing',
             'Send Referral Agreement': 'Referral Out Open',
             'Referral Under Contract': 'Referral Out Under Contract',
-            'Referral Closed': 'Referral Out Closed'
+            'Referral Closed': 'Referral Out Closed',
+            'Offer Rejected': 'Submitting offers',  // Special case: rejected offers go back to submitting
+            'Application Rejected': 'Submitting Applications'  // Special case: rejected applications go back to submitting applications
         };
 
         this.processedDeals = new Set();
