@@ -86,7 +86,7 @@ class FollowUpBossAutomation {
                 console.log('People ID:', firstPeopleID);
                 
                 if (this.shouldFilterOut(dealData.stageName)) {
-                    console.log('Filtered out - stage contains 202');
+                    console.log('Filtered out - stage contains 202 or is Agency Pending');
                     return res.status(200).json({ message: 'Filtered out' });
                 }
 
