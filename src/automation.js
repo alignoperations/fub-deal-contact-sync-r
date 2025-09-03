@@ -86,7 +86,7 @@ class FollowUpBossAutomation {
                 console.log('People ID:', firstPeopleID);
                 
                 if (this.shouldFilterOut(dealData.stageName)) {
-                    console.log('Filtered out - stage contains 202 or is Agency Pending');
+                    console.log('Filtered out - stage contains 202');
                     return res.status(200).json({ message: 'Filtered out' });
                 }
 
@@ -147,7 +147,7 @@ class FollowUpBossAutomation {
     }
 
     shouldFilterOut(stage) {
-        return stage && stage.includes('202');
+        return (stage && stage.includes('202')) || (stage === 'Agency Pending');
     }
 
     determineProcessingPath(dealData, firstPeopleID) {
@@ -368,7 +368,7 @@ class FollowUpBossAutomation {
 
     async createAsanaTask(dealData, agentInfo) {
         const taskName = 'No Contact Attached - ' + (dealData.name || 'Deal');
-        const taskBody = 'Deal Title: ' + (dealData.name || 'Unknown') + '\nAssigned Agent: ' + (agentInfo.name || 'Unknown') + '\nPipeline: ' + (dealData.pipelineName || 'Unknown') + '\nStage: ' + (dealData.stageName || 'Unknown') + '\n\nMake sure this is updated and fixed within 24 hours.';
+        const taskBody = 'Deal Title: ' + (dealData.name || 'Unknown') + '\nAssigned Agent: ' + (agentInfo.name || 'Unknown') + '\nPipeline: ' + (dealData.pipelineName || 'Unknown') + '\nCurrent Stage: ' + (dealData.stageName || 'Unknown') + '\n\nMake sure this is updated and fixed within 24 hours.';
 
         const assigneeGid = '1209646560314034';
         
