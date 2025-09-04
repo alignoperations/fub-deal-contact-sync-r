@@ -402,6 +402,98 @@ class FollowUpBossAutomation {
         }
     }
 
+    async addPipelineTagToContact(peopleId) {
+        try {
+            // Get the pipeline name from current deal data
+            const pipelineName = this.currentDealData?.pipelineName;
+            
+            if (!pipelineName) {
+                console.log('No pipeline name available for tagging');
+                return;
+            }
+
+            // Map "Investments Acquisition" to "Investor", otherwise use pipeline name
+            const tagName = pipelineName === 'Investments Acquisition' ? 'Investor' : pipelineName;
+
+            console.log('Adding pipeline tag:', tagName, 'to contact:', peopleId, '(from pipeline:', pipelineName + ')');
+
+            // First, get or create the tag
+            const tagId = await this.getOrCreateTag(tagName);
+            
+            if (!tagId) {
+                console.log('Could not get or create tag for pipeline:', tagName);
+                return;
+            }
+
+            // Add the tag to the contact
+            const url = this.config.followUpBoss.baseUrl + '/people/' + peopleId + '/tags';
+            
+            const response = await axios.post(url, {
+                tag: tagId
+            }, {
+                headers: {
+                    'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000
+            });
+
+            console.log('Pipeline tag added successfully:', response.status);
+        } catch (error) {
+            console.error('Failed to add pipeline tag:', error.message);
+            // Don't throw error to avoid breaking the main workflow
+        }
+    }
+
+    async getOrCreateTag(tagName) {
+        try {
+            // First, try to find existing tag
+            const searchUrl = this.config.followUpBoss.baseUrl + '/tags';
+            
+            const searchResponse = await axios.get(searchUrl, {
+                headers: {
+                    'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
+                    'Content-Type': 'application/json'
+                },
+                params: {
+                    limit: 100
+                },
+                timeout: 10000
+            });
+
+            // Look for existing tag (case-insensitive)
+            const existingTag = searchResponse.data.find(tag => 
+                tag.name.toLowerCase() === tagName.toLowerCase()
+            );
+
+            if (existingTag) {
+                console.log('Found existing tag:', existingTag.id, 'for name:', tagName);
+                return existingTag.id;
+            }
+
+            // Create new tag if it doesn't exist
+            console.log('Creating new tag:', tagName);
+            const createUrl = this.config.followUpBoss.baseUrl + '/tags';
+            
+            const createResponse = await axios.post(createUrl, {
+                name: tagName
+            }, {
+                headers: {
+                    'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000
+            });
+
+            console.log('Created new tag:', createResponse.data.id, 'for name:', tagName);
+            return createResponse.data.id;
+
+        } catch (error) {
+            console.error('Error getting or creating tag:', error.message);
+            return null;
+        }
+    }
+
     async sendStageUpdateFailureNotification(peopleId, stageName, error) {
         try {
             // Skip notification for Zillow-related stage errors that we don't care about
