@@ -12,7 +12,8 @@ class FollowUpBossAutomation {
             },
             asana: {
                 accessToken: config.asanaAccessToken
-            }
+            },
+            enableAsanaNoContactTasks: config.enableAsanaNoContactTasks !== undefined ? config.enableAsanaNoContactTasks : true  // Set to false to disable Asana task creation
         };
         
         this.stageLookupTable = {
@@ -86,7 +87,7 @@ class FollowUpBossAutomation {
                 console.log('People ID:', firstPeopleID);
                 
                 if (this.shouldFilterOut(dealData.stageName)) {
-                    console.log('Filtered out - stage contains 202');
+                    console.log('Filtered out - stage contains 202 or is Agency Pending');
                     return res.status(200).json({ message: 'Filtered out' });
                 }
 
@@ -239,7 +240,11 @@ class FollowUpBossAutomation {
                 timeout: 10000
             });
             
-            console.log('Follow Up Boss update successful:', response.status);
+            console.log('Follow Up Boss stage update successful:', response.status);
+
+            // Add pipeline tag to the contact
+            await this.addPipelineTagToContact(peopleId);
+            
             return response.data;
         } catch (error) {
             console.error('Failed to update Follow Up Boss stage:', error.message);
@@ -285,7 +290,14 @@ class FollowUpBossAutomation {
         const slackUser = await this.findSlackAgent(agentInfo.email);
         
         await this.sendSlackReminder(slackUser, dealData, agentInfo);
-        await this.createAsanaTask(dealData, agentInfo);
+        
+        // Only create Asana task if enabled
+        if (this.config.enableAsanaNoContactTasks) {
+            console.log('Asana task creation is ENABLED - creating task');
+            await this.createAsanaTask(dealData, agentInfo);
+        } else {
+            console.log('Asana task creation is DISABLED - skipping task creation');
+        }
         
         console.log('Path B: Sent notifications for deal', dealData.id);
     }
