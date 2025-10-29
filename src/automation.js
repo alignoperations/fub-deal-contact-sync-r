@@ -2,6 +2,9 @@ const axios = require('axios');
 
 class FollowUpBossAutomation {
     constructor(config) {
+        // Validate required configuration
+        this.validateConfig(config);
+
         this.config = {
             followUpBoss: {
                 apiKey: config.followUpBossApiKey,
@@ -13,25 +16,86 @@ class FollowUpBossAutomation {
             asana: {
                 accessToken: config.asanaAccessToken
             },
-            enableAsanaNoContactTasks: config.enableAsanaNoContactTasks !== undefined ? config.enableAsanaNoContactTasks : true  // Set to false to disable Asana task creation
+            enableAsanaNoContactTasks: config.enableAsanaNoContactTasks !== undefined ? config.enableAsanaNoContactTasks : true,  // Set to false to disable Asana task creation
+            timeouts: {
+                api: config.apiTimeout || 15000,  // Configurable API timeout (default 15s)
+                slack: config.slackTimeout || 10000  // Configurable Slack timeout (default 10s)
+            }
         };
         
         this.stageLookupTable = {
-            'A (< 30) + Agency': 'A (< 30)',
             'Offers Submitted': 'Submitting offers',
-            'Submitting Applications': 'Application Submitted',
-            'Active Off-Market': 'Active Off Market Listing',
             'Send Referral Agreement': 'Referral Out Open',
             'Referral Under Contract': 'Referral Out Under Contract',
-            'Referral Closed': 'Referral Out Closed',
-            'Offer Rejected': 'Submitting offers',  // Special case: rejected offers go back to submitting
-            'Application Rejected': 'Submitting Applications'  // Special case: rejected applications go back to submitting applications
+            'Referral Closed': 'Referral Out Closed'
         };
 
+        // Special one-way mappings: Deal -> Contact (but Contact should NOT update Deal back)
+        // These require adding the "TriggeredDealContactStageUpdates" tag
+        this.specialOneWayMappings = {
+            'Expired': 'Nurture',
+            'Active Off-Market': 'Active listing',
+            'Submitting Applications': 'Submitting offers',
+            'Application Accepted': 'Under Contract',
+            'Application Rejected': 'Submitting offers',
+            'Attorney Review': 'Submitting offers',
+            'Offer Rejected': 'Submitting offers',
+            'Pre Listing': 'Listing Agreement',
+            'Working with Another Agent': 'Nurture',
+            'Cancelled': 'Nurture',
+            'Fall Through': 'Met with Customer',
+            'Temporarily Off Market': 'Listing Agreement'
+        };
+
+        // Deal stages that should also get the !AgentReview tag
+        this.agentReviewStages = [
+            'Cancelled',
+            'Fall Through',
+            'Expired',
+            'Working with Another Agent'
+        ];
+
         this.processedDeals = new Set();
+        
+        // Cleanup processedDeals every 30 minutes to prevent memory leaks
+        this.cleanupInterval = setInterval(() => {
+            const size = this.processedDeals.size;
+            if (size > 1000) {
+                console.log(`WARNING: processedDeals Set has ${size} entries, clearing to prevent memory issues`);
+                this.processedDeals.clear();
+            }
+        }, 30 * 60 * 1000);
+    }
+
+    validateConfig(config) {
+        const required = ['followUpBossApiKey', 'slackBotToken', 'asanaAccessToken'];
+        const missing = [];
+
+        for (const key of required) {
+            if (!config[key]) {
+                missing.push(key);
+            }
+        }
+
+        if (missing.length > 0) {
+            throw new Error(`Missing required configuration: ${missing.join(', ')}`);
+        }
+    }
+
+    // Cleanup method to be called on shutdown
+    destroy() {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            console.log('Cleanup interval cleared');
+        }
     }
 
     async getStageIdByName(stageName) {
+        if (!stageName) {
+            console.error('getStageIdByName called with empty stageName');
+            return null;
+        }
+
         try {
             const url = this.config.followUpBoss.baseUrl + '/stages';
             
@@ -43,7 +107,7 @@ class FollowUpBossAutomation {
                 params: {
                     limit: 100
                 },
-                timeout: 10000
+                timeout: this.config.timeouts.api
             });
             
             const stages = response.data.stages;
@@ -53,7 +117,7 @@ class FollowUpBossAutomation {
                 return null;
             }
             
-            const stage = stages.find(s => s.name.toLowerCase() === stageName.toLowerCase());
+            const stage = stages.find(s => s.name && s.name.toLowerCase() === stageName.toLowerCase());
             
             if (stage) {
                 console.log('Found stage ID:', stage.id, 'for name:', stageName);
@@ -63,7 +127,12 @@ class FollowUpBossAutomation {
                 return null;
             }
         } catch (error) {
-            console.error('Error fetching stages:', error.message);
+            console.error('Error fetching stages:', {
+                message: error.message,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                stageName
+            });
             return null;
         }
     }
@@ -79,9 +148,23 @@ class FollowUpBossAutomation {
                 const dealId = webhookData.resourceIds[0];
                 console.log('Processing deal ID:', dealId);
                 
-                const dealData = await this.fetchDealDetails(dealId);
-                console.log('Deal stage:', dealData.stageName);
-                console.log('Deal pipeline:', dealData.pipelineName);
+                let dealData;
+                try {
+                    dealData = await this.fetchDealDetails(dealId);
+                    console.log('Deal stage:', dealData.stageName);
+                    console.log('Deal pipeline:', dealData.pipelineName);
+                } catch (fetchError) {
+                    console.error('Failed to fetch deal details:', {
+                        dealId,
+                        message: fetchError.message,
+                        status: fetchError.response?.status
+                    });
+                    return res.status(500).json({ 
+                        error: 'Failed to fetch deal details',
+                        dealId,
+                        message: fetchError.message
+                    });
+                }
 
                 const firstPeopleID = this.extractFirstPeopleID(dealData);
                 console.log('People ID:', firstPeopleID);
@@ -94,10 +177,25 @@ class FollowUpBossAutomation {
                 const pathDecision = this.determineProcessingPath(dealData, firstPeopleID);
                 console.log('Path decision:', pathDecision);
                 
-                if (pathDecision === 'PATH_A') {
-                    await this.processPathA(dealData, firstPeopleID);
-                } else if (pathDecision === 'PATH_B') {
-                    await this.processPathB(dealData, firstPeopleID);
+                try {
+                    if (pathDecision === 'PATH_A') {
+                        await this.processPathA(dealData, firstPeopleID);
+                    } else if (pathDecision === 'PATH_B') {
+                        await this.processPathB(dealData, firstPeopleID);
+                    }
+                } catch (processingError) {
+                    console.error('Error during path processing:', {
+                        path: pathDecision,
+                        dealId,
+                        message: processingError.message,
+                        stack: processingError.stack?.substring(0, 500)
+                    });
+                    return res.status(500).json({ 
+                        error: 'Path processing failed',
+                        path: pathDecision,
+                        dealId,
+                        message: processingError.message
+                    });
                 }
 
                 res.status(200).json({ 
@@ -109,32 +207,54 @@ class FollowUpBossAutomation {
                 res.json({ message: 'Webhook received but not processed' });
             }
         } catch (error) {
-            console.error('Webhook error:', error);
-            res.status(500).json({ error: error.message });
+            console.error('Webhook error:', {
+                message: error.message,
+                stack: error.stack?.substring(0, 500),
+                body: req.body
+            });
+            res.status(500).json({ 
+                error: error.message,
+                type: 'Unhandled webhook error'
+            });
         }
     }
 
     async fetchDealDetails(dealId) {
+        if (!dealId) {
+            throw new Error('fetchDealDetails called with empty dealId');
+        }
+
         const url = this.config.followUpBoss.baseUrl + '/deals/' + dealId;
         
-        const response = await axios.get(url, {
-            headers: {
-                'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
-                'Content-Type': 'application/json'
-            },
-            timeout: 10000
-        });
-        
-        console.log('=== FULL DEAL DATA ===');
-        console.log(JSON.stringify(response.data, null, 2));
-        console.log('=== END DEAL DATA ===');
-        
-        const dealData = response.data;
-        console.log('Deal stage field:', dealData.stage);
-        console.log('Deal stageId field:', dealData.stageId);
-        console.log('Deal status field:', dealData.status);
-        
-        return dealData;
+        try {
+            const response = await axios.get(url, {
+                headers: {
+                    'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
+                    'Content-Type': 'application/json'
+                },
+                timeout: this.config.timeouts.api
+            });
+            
+            console.log('=== FULL DEAL DATA ===');
+            console.log(JSON.stringify(response.data, null, 2));
+            console.log('=== END DEAL DATA ===');
+            
+            const dealData = response.data;
+            console.log('Deal stage field:', dealData.stage);
+            console.log('Deal stageId field:', dealData.stageId);
+            console.log('Deal status field:', dealData.status);
+            
+            return dealData;
+        } catch (error) {
+            console.error('Failed to fetch deal details:', {
+                dealId,
+                url,
+                message: error.message,
+                status: error.response?.status,
+                statusText: error.response?.statusText
+            });
+            throw new Error(`Failed to fetch deal ${dealId}: ${error.message}`);
+        }
     }
 
     extractFirstPeopleID(dealData) {
@@ -183,6 +303,18 @@ class FollowUpBossAutomation {
         const transformedStage = this.transformStage(dealData.stageName);
         console.log('Stage transformation:', dealData.stageName, '->', transformedStage);
         
+        // If this is a special one-way mapping, add the loop prevention tag BEFORE updating the stage
+        if (this.isSpecialOneWayMapping(dealData.stageName)) {
+            console.log('Special one-way mapping detected - adding TriggeredDealContactStageUpdates tag');
+            await this.addLoopPreventionTag(firstPeopleID);
+            
+            // Also add !AgentReview tag if this stage requires it
+            if (this.needsAgentReviewTag(dealData.stageName)) {
+                console.log('Agent review required for stage:', dealData.stageName, '- adding !AgentReview tag');
+                await this.addAgentReviewTag(firstPeopleID);
+            }
+        }
+        
         await this.updateFollowUpBossStage(firstPeopleID, transformedStage);
         console.log('Path A: Updated person', firstPeopleID, 'to stage:', transformedStage);
     }
@@ -201,7 +333,36 @@ class FollowUpBossAutomation {
     }
 
     transformStage(originalStage) {
+        // Check for special one-way mappings first
+        if (this.specialOneWayMappings[originalStage]) {
+            return this.specialOneWayMappings[originalStage];
+        }
+        // Check if stage contains "Closed" (case-insensitive)
+        if (originalStage && originalStage.toLowerCase().includes('closed')) {
+            return 'Closed';
+        }
+        // Fall back to regular mappings
         return this.stageLookupTable[originalStage] || originalStage;
+    }
+
+    isSpecialOneWayMapping(originalStage) {
+        // Check explicit mappings first
+        if (this.specialOneWayMappings.hasOwnProperty(originalStage)) {
+            return true;
+        }
+        // Check if stage contains "Closed"
+        if (originalStage && originalStage.toLowerCase().includes('closed')) {
+            return true;
+        }
+        return false;
+    }
+
+    needsAgentReviewTag(originalStage) {
+        return this.agentReviewStages.includes(originalStage);
+    }
+
+    needsAgentReviewTag(originalStage) {
+        return this.agentReviewStages.includes(originalStage);
     }
 
     async updateFollowUpBossStage(peopleId, stageName) {
@@ -506,13 +667,81 @@ class FollowUpBossAutomation {
         }
     }
 
+    async addLoopPreventionTag(peopleId) {
+        try {
+            const tagName = 'TriggeredDealContactStageUpdates';
+            console.log('Adding loop prevention tag:', tagName, 'to contact:', peopleId);
+
+            // Get or create the tag
+            const tagId = await this.getOrCreateTag(tagName);
+            
+            if (!tagId) {
+                console.log('Could not get or create loop prevention tag');
+                return;
+            }
+
+            // Add the tag to the contact using mergeTags=true to preserve existing tags
+            const url = this.config.followUpBoss.baseUrl + '/people/' + peopleId + '/tags?mergeTags=true';
+            
+            const response = await axios.post(url, {
+                tag: tagId
+            }, {
+                headers: {
+                    'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000
+            });
+
+            console.log('Loop prevention tag added successfully:', response.status);
+        } catch (error) {
+            console.error('Failed to add loop prevention tag:', error.message);
+            // Don't throw error to avoid breaking the main workflow
+        }
+    }
+
+    async addAgentReviewTag(peopleId) {
+        try {
+            const tagName = '!AgentReview';
+            console.log('Adding agent review tag:', tagName, 'to contact:', peopleId);
+
+            // Get or create the tag
+            const tagId = await this.getOrCreateTag(tagName);
+            
+            if (!tagId) {
+                console.log('Could not get or create agent review tag');
+                return;
+            }
+
+            // Add the tag to the contact using mergeTags=true to preserve existing tags
+            const url = this.config.followUpBoss.baseUrl + '/people/' + peopleId + '/tags?mergeTags=true';
+            
+            const response = await axios.post(url, {
+                tag: tagId
+            }, {
+                headers: {
+                    'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000
+            });
+
+            console.log('Agent review tag added successfully:', response.status);
+        } catch (error) {
+            console.error('Failed to add agent review tag:', error.message);
+            // Don't throw error to avoid breaking the main workflow
+        }
+    }
+
     async sendStageUpdateFailureNotification(peopleId, stageName, error) {
         try {
+            const errorDetails = error?.details || error?.response?.data?.errorMessage || 'No additional details available';
+            
             // Skip notification for Zillow-related stage errors that we don't care about
-            if (error.details && (
-                error.details.includes('Provided stage is not a valid Zillow Sync Stage') ||
-                error.details.includes('Zillow Flex') ||
-                error.details.includes('Zillow')
+            if (errorDetails && (
+                errorDetails.includes('Provided stage is not a valid Zillow Sync Stage') ||
+                errorDetails.includes('Zillow Flex') ||
+                errorDetails.includes('Zillow')
             )) {
                 console.log('Skipping Zillow-related stage error notification - this is expected');
                 return;
@@ -529,8 +758,8 @@ Pipeline: ${pipelineName}
 New Stage: ${stageName}
 FUB Contact Link: https://align.followupboss.com/2/people/view/${peopleId}
 
-Error: ${error.message}
-Details: ${error.details || 'No additional details available'}`;
+Error: ${error.message || 'Unknown error'}
+Details: ${errorDetails}`;
 
             await axios.post('https://slack.com/api/chat.postMessage', {
                 channel: channelId,
@@ -540,12 +769,17 @@ Details: ${error.details || 'No additional details available'}`;
                     'Authorization': 'Bearer ' + this.config.slack.botToken,
                     'Content-Type': 'application/json'
                 },
-                timeout: 10000
+                timeout: this.config.timeouts.slack
             });
 
             console.log('Stage update failure notification sent to channel C093UR5GGF2');
         } catch (notificationError) {
-            console.error('Failed to send stage update failure notification:', notificationError.message);
+            console.error('Failed to send stage update failure notification:', {
+                message: notificationError.message,
+                peopleId,
+                stageName,
+                originalError: error.message
+            });
         }
     }
 }
