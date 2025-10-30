@@ -16,7 +16,7 @@ class FollowUpBossAutomation {
             asana: {
                 accessToken: config.asanaAccessToken
             },
-            enableAsanaNoContactTasks: config.enableAsanaNoContactTasks !== undefined ? config.enableAsanaNoContactTasks : true,  // Set to false to disable Asana task creation
+            enableAsanaNoContactTasks: config.enableAsanaNoContactTasks !== undefined ? config.enableAsanaNoContactTasks : false,  // Set to false to disable Asana task creation
             timeouts: {
                 api: config.apiTimeout || 15000,  // Configurable API timeout (default 15s)
                 slack: config.slackTimeout || 10000  // Configurable Slack timeout (default 10s)
