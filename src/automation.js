@@ -300,8 +300,8 @@ class FollowUpBossAutomation {
             return;
         }
 
-        const transformedStage = this.transformStage(dealData.stageName);
-        console.log('Stage transformation:', dealData.stageName, '->', transformedStage);
+        const transformedStage = this.transformStage(dealData.stageName, dealData.pipelineName);
+console.log('Stage transformation:', dealData.stageName, 'in', dealData.pipelineName, 'pipeline ->', transformedStage);
         
         // If this is a special one-way mapping, add the loop prevention tag BEFORE updating the stage
         if (this.isSpecialOneWayMapping(dealData.stageName)) {
@@ -332,18 +332,32 @@ class FollowUpBossAutomation {
         return condition1 || condition2 || condition3 || condition4 || condition5;
     }
 
-    transformStage(originalStage) {
-        // Check for special one-way mappings first
-        if (this.specialOneWayMappings[originalStage]) {
-            return this.specialOneWayMappings[originalStage];
+    transformStage(originalStage, pipelineName) {
+    // Pipeline-specific transformations (check these FIRST)
+    if (originalStage === 'Attorney Review') {
+        const pipeline = (pipelineName || '').toLowerCase();
+        if (pipeline.includes('listing') || pipeline.includes('seller') || pipeline.includes('landlord')) {
+            console.log('Attorney Review in Listing/Seller/Landlord pipeline -> Active Listing');
+            return 'Active Listing';
         }
-        // Check if stage contains "Closed" (case-insensitive)
-        if (originalStage && originalStage.toLowerCase().includes('closed')) {
-            return 'Closed';
-        }
-        // Fall back to regular mappings
-        return this.stageLookupTable[originalStage] || originalStage;
+        // For other pipelines (Buyer, Tenant), use the default mapping
+        console.log('Attorney Review in Buyer/Tenant pipeline -> Submitting offers');
+        return 'Submitting offers';
     }
+    
+    // Check for special one-way mappings
+    if (this.specialOneWayMappings[originalStage]) {
+        return this.specialOneWayMappings[originalStage];
+    }
+    
+    // Check if stage contains "Closed" (case-insensitive)
+    if (originalStage && originalStage.toLowerCase().includes('closed')) {
+        return 'Closed';
+    }
+    
+    // Fall back to regular mappings
+    return this.stageLookupTable[originalStage] || originalStage;
+}
 
     isSpecialOneWayMapping(originalStage) {
         // Check explicit mappings first
