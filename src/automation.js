@@ -668,70 +668,53 @@ class FollowUpBossAutomation {
     }
 
     async addLoopPreventionTag(peopleId) {
-        try {
-            const tagName = 'TriggeredDealContactStageUpdates';
-            console.log('Adding loop prevention tag:', tagName, 'to contact:', peopleId);
+    try {
+        const tagName = 'TriggeredDealContactStageUpdates';
+        console.log('Adding loop prevention tag:', tagName, 'to contact:', peopleId);
 
-            // Get or create the tag
-            const tagId = await this.getOrCreateTag(tagName);
-            
-            if (!tagId) {
-                console.log('Could not get or create loop prevention tag');
-                return;
-            }
+        // Add tag directly by name using PUT with mergeTags=true
+        const url = this.config.followUpBoss.baseUrl + '/people/' + peopleId + '?mergeTags=true';
+        
+        const response = await axios.put(url, {
+            tags: [tagName]  // ← Using tag name directly
+        }, {
+            headers: {
+                'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
+                'Content-Type': 'application/json'
+            },
+            timeout: this.config.timeouts.api
+        });
 
-            // Add the tag to the contact using mergeTags=true to preserve existing tags
-            const url = this.config.followUpBoss.baseUrl + '/people/' + peopleId + '/tags?mergeTags=true';
-            
-            const response = await axios.post(url, {
-                tag: tagId
-            }, {
-                headers: {
-                    'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
-                    'Content-Type': 'application/json'
-                },
-                timeout: 10000
-            });
-
-            console.log('Loop prevention tag added successfully:', response.status);
-        } catch (error) {
-            console.error('Failed to add loop prevention tag:', error.message);
-            // Don't throw error to avoid breaking the main workflow
-        }
+        console.log('Loop prevention tag added successfully:', response.status);
+    } catch (error) {
+        console.error('Failed to add loop prevention tag:', error.message);
+        // Don't throw error to avoid breaking the main workflow
     }
+}
 
     async addAgentReviewTag(peopleId) {
-        try {
-            const tagName = '!AgentReview';
-            console.log('Adding agent review tag:', tagName, 'to contact:', peopleId);
+    try {
+        const tagName = '!AgentReview';
+        console.log('Adding agent review tag:', tagName, 'to contact:', peopleId);
 
-            // Get or create the tag
-            const tagId = await this.getOrCreateTag(tagName);
-            
-            if (!tagId) {
-                console.log('Could not get or create agent review tag');
-                return;
-            }
+        // Add tag directly by name using PUT with mergeTags=true
+        const url = this.config.followUpBoss.baseUrl + '/people/' + peopleId + '?mergeTags=true';
+        
+        const response = await axios.put(url, {
+            tags: [tagName]
+        }, {
+            headers: {
+                'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
+                'Content-Type': 'application/json'
+            },
+            timeout: this.config.timeouts.api
+        });
 
-            // Add the tag to the contact using mergeTags=true to preserve existing tags
-            const url = this.config.followUpBoss.baseUrl + '/people/' + peopleId + '/tags?mergeTags=true';
-            
-            const response = await axios.post(url, {
-                tag: tagId
-            }, {
-                headers: {
-                    'Authorization': 'Basic ' + Buffer.from(this.config.followUpBoss.apiKey + ':').toString('base64'),
-                    'Content-Type': 'application/json'
-                },
-                timeout: 10000
-            });
-
-            console.log('Agent review tag added successfully:', response.status);
-        } catch (error) {
-            console.error('Failed to add agent review tag:', error.message);
-            // Don't throw error to avoid breaking the main workflow
-        }
+        console.log('Agent review tag added successfully:', response.status);
+    } catch (error) {
+        console.error('Failed to add agent review tag:', error.message);
     }
+}
 
     async sendStageUpdateFailureNotification(peopleId, stageName, error) {
         try {
