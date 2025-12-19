@@ -35,6 +35,7 @@ class FollowUpBossAutomation {
         this.specialOneWayMappings = {
             'Expired': 'Nurture',
             'Active Off-Market': 'Active listing',
+            'Active Office Exclusive': 'Active listing',
             'Submitting Applications': 'Submitting offers',
             'Application Accepted': 'Under Contract',
             'Application Rejected': 'Submitting offers',
