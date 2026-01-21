@@ -40,7 +40,7 @@ class FollowUpBossAutomation {
             'Application Accepted': 'Under Contract',
             'Application Rejected': 'Submitting offers',
             'Attorney Review': 'Submitting offers',
-            'Offer Rejected': 'Submitting offers',
+            'Offer Rejected / Withdrawn': 'Submitting offers',
             'Pre-Listing': 'Listing Agreement',
             'Working with Another Agent': 'Nurture',
             'Cancelled': 'Nurture',
