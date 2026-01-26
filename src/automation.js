@@ -160,7 +160,7 @@ class FollowUpBossAutomation {
         
         if (hasOutputItem) {
             const pipeline = dealData.pipelineName || '';
-            const excludedPipelines = ['Investments Acquisition', 'Agent Recruiting', 'Commercial'];
+            const excludedPipelines = ['Agent Recruiting', 'Commercial'];
             
             const shouldExclude = excludedPipelines.some(excluded => pipeline.includes(excluded));
             
