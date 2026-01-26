@@ -17,29 +17,41 @@ class FollowUpBossAutomation {
         };
         
         this.stageLookupTable = {
-            'A (< 30) + Agency': 'A (< 30)',
-            'Offers Submitted': 'Submitting offers',
-            'Submitting Applications': 'Application Submitted',
-            'Active Off-Market': 'Active Off Market Listing',
-            'Send Referral Agreement': 'Referral Out Open',
-            'Referral Under Contract': 'Referral Out Under Contract',
-            'Referral Closed': 'Referral Out Closed',
-            'Offer Rejected': 'Submitting offers',
-            'Application Rejected': 'Submitting Applications',
-            // Investments Acquisition pipeline stage mappings
-            'INVESTMENT - Nurture': 'Nurture',
-            'Investment Opportunities': 'Seller Opportunities',
-            'Preliminary Offer': 'Deal Analysis',
-            // Commercial pipeline stage mappings
-            'Get Offer from Henry': 'COMMERCIAL - Needs Offer',
-            'Present Henry Offer': 'COMMERCIAL - Present Henry Offer',
-            'Overpriced': 'COMMERCIAL - Overpriced',
-            'Active': 'COMMERCIAL - Active',
-            'Henry\'s Hot List': 'COMMERCIAL - Henry\'s Hot List',
-            'Commission Agreement Signed': 'COMMERCIAL - Commission Agreement Signed',
-            'Exclusive Listing': 'COMMERCIAL - Exclusive Listing',
-            'In Negotiations': 'COMMERCIAL - In Negotiations'
-        };
+    'A (< 30) + Agency': 'A (< 30)',
+    'Offers Submitted': 'Submitting offers',
+    'Submitting Applications': 'Application Submitted',
+    'Active Off-Market': 'Active Off Market Listing',
+    'Send Referral Agreement': 'Referral Out Open',
+    'Referral Under Contract': 'Referral Out Under Contract',
+    'Referral Closed': 'Referral Out Closed',
+    'Offer Rejected': 'Submitting offers',
+    'Application Rejected': 'Submitting Applications',
+    // Investments Acquisition pipeline stage mappings
+    'INVESTMENT - Nurture': 'INVESTMENT - Nurture',
+    'Off Market Retail Opportunity': 'INVESTMENT - Off Market Retail Opportunity',
+    'Investment Opportunities': 'INVESTMENT - Seller Opportunities',
+    'Preliminary Offer': 'INVESTMENT - Deal Analysis',
+    'Offers Submitted': 'INVESTMENT - Offer Submitted',
+    'Offer Accepted / Disposition': 'INVESTMENT - Offer Submitted',
+    'Attorney Review': 'INVESTMENT - Pending Wholesale',
+    'Pending Wholesale': 'INVESTMENT - Pending Wholesale',
+    'Start Transaction': 'INVESTMENT - Seller Signed Wholesale',
+    'Closed Wholesale': 'INVESTMENT - Closed Wholesale',
+    'Under Contract': 'INVESTMENT - Under Contract',
+    'Purchased Investment': 'INVESTMENT - Purchased Investment',
+    'Under Construction': 'INVESTMENT - Under Construction',
+    'Offer Rejected': 'INVESTMENT - Offer Rejected',
+    'Fall Through': 'INVESTMENT - Fall Through',
+    // Commercial pipeline stage mappings
+    'Get Offer from Henry': 'COMMERCIAL - Needs Offer',
+    'Present Henry Offer': 'COMMERCIAL - Present Henry Offer',
+    'Overpriced': 'COMMERCIAL - Overpriced',
+    'Active': 'COMMERCIAL - Active',
+    'Henry\'s Hot List': 'COMMERCIAL - Henry\'s Hot List',
+    'Commission Agreement Signed': 'COMMERCIAL - Commission Agreement Signed',
+    'Exclusive Listing': 'COMMERCIAL - Exclusive Listing',
+    'In Negotiations': 'COMMERCIAL - In Negotiations'
+};
 
         this.processedDeals = new Set();
     }
