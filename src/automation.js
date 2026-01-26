@@ -17,6 +17,7 @@ class FollowUpBossAutomation {
         };
         
         this.stageLookupTable = {
+    // General pipeline mappings (Buyer, Listing, Landlord, Tenant, etc.)
     'A (< 30) + Agency': 'A (< 30)',
     'Offers Submitted': 'Submitting offers',
     'Submitting Applications': 'Application Submitted',
@@ -25,24 +26,29 @@ class FollowUpBossAutomation {
     'Referral Under Contract': 'Referral Out Under Contract',
     'Referral Closed': 'Referral Out Closed',
     'Offer Rejected': 'Submitting offers',
-    'Application Rejected': 'Submitting Applications',
-    // Investments Acquisition pipeline stage mappings (without INVESTMENT prefix in keys)
+    'Application Rejected': 'Submitting Applications'
+};
+
+// Separate pipeline-specific mappings
+this.investmentStageLookup = {
     'INVESTMENT - Nurture': 'INVESTMENT - Nurture',
     'Off Market Retail Opportunity': 'INVESTMENT - Off Market Retail Opportunity',
     'Investment Opportunities': 'INVESTMENT - Seller Opportunities',
     'Preliminary Offer': 'INVESTMENT - Deal Analysis',
     'Offers Submitted': 'INVESTMENT - Offer Submitted',
     'Offer Accepted / Disposition': 'INVESTMENT - Offer Submitted',
-    'Attorney Review': 'INVESTMENT - Pending Wholesale',  // Will use pipeline check
+    'Attorney Review': 'INVESTMENT - Pending Wholesale',
     'Pending Wholesale': 'INVESTMENT - Pending Wholesale',
     'Start Transaction': 'INVESTMENT - Seller Signed Wholesale',
     'Closed Wholesale': 'INVESTMENT - Closed Wholesale',
-    'Under Contract': 'INVESTMENT - Under Contract',  // Will use pipeline check
+    'Under Contract': 'INVESTMENT - Under Contract',
     'Purchased Investment': 'INVESTMENT - Purchased Investment',
     'Under Construction': 'INVESTMENT - Under Construction',
     'Offer Rejected': 'INVESTMENT - Offer Rejected',
-    'Fall Through': 'INVESTMENT - Fall Through',  // Will use pipeline check
-    // Commercial pipeline stage mappings
+    'Fall Through': 'INVESTMENT - Fall Through'
+};
+
+this.commercialStageLookup = {
     'Lead': 'COMMERCIAL - Lead',
     'Spoke with customer': 'COMMERCIAL - Spoke with customer',
     'F (< 24 mos)': 'COMMERCIAL - F (< 24 mos)',
@@ -57,10 +63,12 @@ class FollowUpBossAutomation {
     'Commission Agreement Signed': 'COMMERCIAL - Commission Agreement Signed',
     'Exclusive Listing': 'COMMERCIAL - Exclusive Listing',
     'In Negotiations': 'COMMERCIAL - In Negotiations',
-    // Attorney Review, Under Contract, Fall Through handled by pipeline-specific lookup
+    'Attorney Review': 'COMMERCIAL - Attorney Review',
+    'Under Contract': 'COMMERCIAL - Under Contract',
     'Closed': 'COMMERCIAL - Closed',
     'Client Not Taken': 'COMMERCIAL - Client Not Taken',
-    'Cancelled': 'COMMERCIAL - Cancelled'
+    'Cancelled': 'COMMERCIAL - Cancelled',
+    'Fall Through': 'COMMERCIAL - Fall Through'
 };
 
         this.processedDeals = new Set();
@@ -240,9 +248,9 @@ class FollowUpBossAutomation {
     
     // For Investments Acquisition pipeline
     if (pipeline === 'Investments Acquisition') {
-        // Check lookup table first
-        if (this.stageLookupTable[originalStage]) {
-            return this.stageLookupTable[originalStage];
+        // Check investment-specific lookup table first
+        if (this.investmentStageLookup[originalStage]) {
+            return this.investmentStageLookup[originalStage];
         }
         // Fallback: prepend "INVESTMENT - "
         return 'INVESTMENT - ' + originalStage;
@@ -250,15 +258,16 @@ class FollowUpBossAutomation {
     
     // For Commercial pipeline
     if (pipeline === 'Commercial') {
-        // Check lookup table first
-        if (this.stageLookupTable[originalStage]) {
-            return this.stageLookupTable[originalStage];
+        // Check commercial-specific lookup table first
+        if (this.commercialStageLookup[originalStage]) {
+            return this.commercialStageLookup[originalStage];
         }
         // Fallback: prepend "COMMERCIAL - "
         return 'COMMERCIAL - ' + originalStage;
     }
     
-    // For all other pipelines, check lookup table
+    // For all other pipelines (Buyer, Listing, Landlord, Tenant, etc.)
+    // Only use the general lookup table
     if (this.stageLookupTable[originalStage]) {
         return this.stageLookupTable[originalStage];
     }
