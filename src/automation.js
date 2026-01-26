@@ -43,14 +43,26 @@ class FollowUpBossAutomation {
     'Offer Rejected': 'INVESTMENT - Offer Rejected',
     'Fall Through': 'INVESTMENT - Fall Through',
     // Commercial pipeline stage mappings
-    'Get Offer from Henry': 'COMMERCIAL - Needs Offer',
+    'Lead': 'COMMERCIAL - Lead',
+    'Spoke with customer': 'COMMERCIAL - Spoke with customer',
+    'F (< 24 mos)': 'COMMERCIAL - F (< 24 mos)',
+    'E (< 12 mos)': 'COMMERCIAL - E (< 12 mos)',
+    'C (< 90)': 'COMMERCIAL - C (< 90)',
+    'A (< 30)': 'COMMERCIAL - A (< 30)',
+    'Get Offer from Henry': 'COMMERCIAL - Get Offer from Henry',
     'Present Henry Offer': 'COMMERCIAL - Present Henry Offer',
     'Overpriced': 'COMMERCIAL - Overpriced',
     'Active': 'COMMERCIAL - Active',
     'Henry\'s Hot List': 'COMMERCIAL - Henry\'s Hot List',
     'Commission Agreement Signed': 'COMMERCIAL - Commission Agreement Signed',
     'Exclusive Listing': 'COMMERCIAL - Exclusive Listing',
-    'In Negotiations': 'COMMERCIAL - In Negotiations'
+    'In Negotiations': 'COMMERCIAL - In Negotiations',
+    'Attorney Review': 'COMMERCIAL - Attorney Review',
+    'Under Contract': 'COMMERCIAL - Under Contract',
+    'Closed': 'COMMERCIAL - Closed',
+    'Client Not Taken': 'COMMERCIAL - Client Not Taken',
+    'Cancelled': 'COMMERCIAL - Cancelled',
+    'Fall Through': 'COMMERCIAL - Fall Through'
 };
 
         this.processedDeals = new Set();
