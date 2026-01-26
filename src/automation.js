@@ -26,22 +26,22 @@ class FollowUpBossAutomation {
     'Referral Closed': 'Referral Out Closed',
     'Offer Rejected': 'Submitting offers',
     'Application Rejected': 'Submitting Applications',
-    // Investments Acquisition pipeline stage mappings
+    // Investments Acquisition pipeline stage mappings (without INVESTMENT prefix in keys)
     'INVESTMENT - Nurture': 'INVESTMENT - Nurture',
     'Off Market Retail Opportunity': 'INVESTMENT - Off Market Retail Opportunity',
     'Investment Opportunities': 'INVESTMENT - Seller Opportunities',
     'Preliminary Offer': 'INVESTMENT - Deal Analysis',
     'Offers Submitted': 'INVESTMENT - Offer Submitted',
     'Offer Accepted / Disposition': 'INVESTMENT - Offer Submitted',
-    'Attorney Review': 'INVESTMENT - Pending Wholesale',
+    'Attorney Review': 'INVESTMENT - Pending Wholesale',  // Will use pipeline check
     'Pending Wholesale': 'INVESTMENT - Pending Wholesale',
     'Start Transaction': 'INVESTMENT - Seller Signed Wholesale',
     'Closed Wholesale': 'INVESTMENT - Closed Wholesale',
-    'Under Contract': 'INVESTMENT - Under Contract',
+    'Under Contract': 'INVESTMENT - Under Contract',  // Will use pipeline check
     'Purchased Investment': 'INVESTMENT - Purchased Investment',
     'Under Construction': 'INVESTMENT - Under Construction',
     'Offer Rejected': 'INVESTMENT - Offer Rejected',
-    'Fall Through': 'INVESTMENT - Fall Through',
+    'Fall Through': 'INVESTMENT - Fall Through',  // Will use pipeline check
     // Commercial pipeline stage mappings
     'Lead': 'COMMERCIAL - Lead',
     'Spoke with customer': 'COMMERCIAL - Spoke with customer',
@@ -57,12 +57,10 @@ class FollowUpBossAutomation {
     'Commission Agreement Signed': 'COMMERCIAL - Commission Agreement Signed',
     'Exclusive Listing': 'COMMERCIAL - Exclusive Listing',
     'In Negotiations': 'COMMERCIAL - In Negotiations',
-    'Attorney Review': 'COMMERCIAL - Attorney Review',
-    'Under Contract': 'COMMERCIAL - Under Contract',
+    // Attorney Review, Under Contract, Fall Through handled by pipeline-specific lookup
     'Closed': 'COMMERCIAL - Closed',
     'Client Not Taken': 'COMMERCIAL - Client Not Taken',
-    'Cancelled': 'COMMERCIAL - Cancelled',
-    'Fall Through': 'COMMERCIAL - Fall Through'
+    'Cancelled': 'COMMERCIAL - Cancelled'
 };
 
         this.processedDeals = new Set();
@@ -238,21 +236,31 @@ class FollowUpBossAutomation {
     }
 
     transformStage(originalStage) {
-    // Check if there's a mapping in the lookup table
-    if (this.stageLookupTable[originalStage]) {
-        return this.stageLookupTable[originalStage];
-    }
-    
     const pipeline = this.currentDealData?.pipelineName;
     
-    // If no mapping found and pipeline is Investments Acquisition, prepend "INVESTMENT - "
+    // For Investments Acquisition pipeline
     if (pipeline === 'Investments Acquisition') {
+        // Check lookup table first
+        if (this.stageLookupTable[originalStage]) {
+            return this.stageLookupTable[originalStage];
+        }
+        // Fallback: prepend "INVESTMENT - "
         return 'INVESTMENT - ' + originalStage;
     }
     
-    // If no mapping found and pipeline is Commercial, prepend "COMMERCIAL - "
+    // For Commercial pipeline
     if (pipeline === 'Commercial') {
+        // Check lookup table first
+        if (this.stageLookupTable[originalStage]) {
+            return this.stageLookupTable[originalStage];
+        }
+        // Fallback: prepend "COMMERCIAL - "
         return 'COMMERCIAL - ' + originalStage;
+    }
+    
+    // For all other pipelines, check lookup table
+    if (this.stageLookupTable[originalStage]) {
+        return this.stageLookupTable[originalStage];
     }
     
     // Otherwise return original stage name
