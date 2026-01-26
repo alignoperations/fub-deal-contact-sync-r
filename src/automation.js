@@ -29,7 +29,16 @@ class FollowUpBossAutomation {
             // Investments Acquisition pipeline stage mappings
             'INVESTMENT - Nurture': 'Nurture',
             'Investment Opportunities': 'Seller Opportunities',
-            'Preliminary Offer': 'Deal Analysis'
+            'Preliminary Offer': 'Deal Analysis',
+            // Commercial pipeline stage mappings
+            'Get Offer from Henry': 'COMMERCIAL - Needs Offer',
+            'Present Henry Offer': 'COMMERCIAL - Present Henry Offer',
+            'Overpriced': 'COMMERCIAL - Overpriced',
+            'Active': 'COMMERCIAL - Active',
+            'Henry\'s Hot List': 'COMMERCIAL - Henry\'s Hot List',
+            'Commission Agreement Signed': 'COMMERCIAL - Commission Agreement Signed',
+            'Exclusive Listing': 'COMMERCIAL - Exclusive Listing',
+            'In Negotiations': 'COMMERCIAL - In Negotiations'
         };
 
         this.processedDeals = new Set();
@@ -156,23 +165,23 @@ class FollowUpBossAutomation {
     }
 
     determineProcessingPath(dealData, firstPeopleID) {
-        const hasOutputItem = firstPeopleID !== null;
+    const hasOutputItem = firstPeopleID !== null;
+    
+    if (hasOutputItem) {
+        const pipeline = dealData.pipelineName || '';
+        const excludedPipelines = ['Agent Recruiting'];  
         
-        if (hasOutputItem) {
-            const pipeline = dealData.pipelineName || '';
-            const excludedPipelines = ['Agent Recruiting', 'Commercial'];
-            
-            const shouldExclude = excludedPipelines.some(excluded => pipeline.includes(excluded));
-            
-            if (!shouldExclude) {
-                return 'PATH_A';
-            }
-        } else {
-            return 'PATH_B';
+        const shouldExclude = excludedPipelines.some(excluded => pipeline.includes(excluded));
+        
+        if (!shouldExclude) {
+            return 'PATH_A';
         }
-        
-        return 'SKIP';
+    } else {
+        return 'PATH_B';
     }
+    
+    return 'SKIP';
+}
 
     async processPathA(dealData, firstPeopleID) {
         console.log('Processing Path A - Update stage');
@@ -205,8 +214,26 @@ class FollowUpBossAutomation {
     }
 
     transformStage(originalStage) {
-        return this.stageLookupTable[originalStage] || originalStage;
+    // Check if there's a mapping in the lookup table
+    if (this.stageLookupTable[originalStage]) {
+        return this.stageLookupTable[originalStage];
     }
+    
+    const pipeline = this.currentDealData?.pipelineName;
+    
+    // If no mapping found and pipeline is Investments Acquisition, prepend "INVESTMENT - "
+    if (pipeline === 'Investments Acquisition') {
+        return 'INVESTMENT - ' + originalStage;
+    }
+    
+    // If no mapping found and pipeline is Commercial, prepend "COMMERCIAL - "
+    if (pipeline === 'Commercial') {
+        return 'COMMERCIAL - ' + originalStage;
+    }
+    
+    // Otherwise return original stage name
+    return originalStage;
+}
 
     async updateFollowUpBossStage(peopleId, stageName) {
         if (!stageName || stageName === 'undefined') {
