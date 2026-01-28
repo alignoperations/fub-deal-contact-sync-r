@@ -13,7 +13,7 @@ class FollowUpBossAutomation {
             asana: {
                 accessToken: config.asanaAccessToken
             },
-            enableAsanaNoContactTasks: config.enableAsanaNoContactTasks !== undefined ? config.enableAsanaNoContactTasks : true  // Set to false to disable Asana task creation
+            enableAsanaNoContactTasks: config.enableAsanaNoContactTasks !== undefined ? config.enableAsanaNoContactTasks : false  // Set to false to disable Asana task creation
         };
         
         this.stageLookupTable = {
