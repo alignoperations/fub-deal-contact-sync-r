@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { logError, classifyError } = require('../errorLogger');
 
 class FollowUpBossAutomation {
     constructor(config) {
@@ -153,6 +154,13 @@ this.commercialStageLookup = {
             }
         } catch (error) {
             console.error('Webhook error:', error);
+            logError({
+                appName: 'fub-deal-contact-sync-r',
+                errorType: classifyError(error),
+                errorMessage: `Webhook processing error: ${error.message}`,
+                httpStatus: error.response?.status,
+                context: JSON.stringify(error.response?.data || {}).slice(0, 1000)
+            });
             res.status(500).json({ error: error.message });
         }
     }
@@ -320,7 +328,14 @@ this.commercialStageLookup = {
             return response.data;
         } catch (error) {
             console.error('Failed to update Follow Up Boss stage:', error.message);
-            
+            logError({
+                appName: 'fub-deal-contact-sync-r',
+                errorType: classifyError(error),
+                errorMessage: `FUB stage update failed: ${error.message}`,
+                httpStatus: error.response?.status,
+                context: JSON.stringify(error.response?.data || {}).slice(0, 1000)
+            });
+
             let detailedError = error;
             if (error.response) {
                 detailedError.details = `HTTP ${error.response.status}: ${error.response.statusText}. Response: ${JSON.stringify(error.response.data)}`;
